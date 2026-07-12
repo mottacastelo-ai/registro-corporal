@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Registro Corporal</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Registro Corporal">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1A1D21">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#1A1D21;
+    --panel:#23272C;
+    --panel-alt:#2A2F35;
+    --line:#343A40;
+    --ink:#ECE8E1;
+    --ink-dim:#9BA1A8;
+    --brass:#B8935A;
+    --brass-dim:#8C734A;
+    --alert:#C1584B;
+    --good:#6FA98B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:40px;
+  }
+  .ruler{
+    height:14px;
+    background-image:repeating-linear-gradient(90deg,
+      var(--brass-dim) 0, var(--brass-dim) 1px,
+      transparent 1px, transparent 8px);
+    background-size:8px 100%;
+    opacity:0.55;
+  }
+  header{
+    padding:22px 20px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  header h1{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:19px;
+    letter-spacing:0.5px;
+    margin:0 0 2px;
+    font-weight:600;
+  }
+  header p{
+    margin:0;
+    font-size:12.5px;
+    color:var(--ink-dim);
+  }
+  nav.tabs{
+    display:flex;
+    gap:0;
+    margin:16px 20px 0;
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  nav.tabs button{
+    flex:1;
+    padding:11px 0;
+    background:var(--panel);
+    color:var(--ink-dim);
+    border:none;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    letter-spacing:0.3px;
+    cursor:pointer;
+  }
+  nav.tabs button.active{
+    background:var(--brass);
+    color:#1A1D21;
+  }
+  main{padding:18px 20px 0;}
+  section.view{display:none;}
+  section.view.active{display:block;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--brass);
+    margin:0 0 12px;
+    font-weight:600;
+  }
+  .row{
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+    flex-wrap:wrap;
+  }
+  .field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:110px;}
+  .field label{font-size:11.5px;color:var(--ink-dim);}
+  .field input{
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:16px;
+    padding:9px 10px;
+    width:100%;
+  }
+  .field input:focus{outline:1px solid var(--brass);border-color:var(--brass);}
+  .big-input input{font-size:24px;font-weight:600;text-align:center;}
+  button.primary{
+    background:var(--brass);
+    color:#1A1D21;
+    border:none;
+    border-radius:8px;
+    padding:11px 18px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  button.primary:active{background:var(--brass-dim);}
+  button.ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:11.5px;
+    cursor:pointer;
+  }
+
+  .current-weight{
+    text-align:center;
+    padding:6px 0 14px;
+    position:relative;
+  }
+  .current-weight .value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:44px;
+    font-weight:700;
+    letter-spacing:-1px;
+  }
+  .current-weight .unit{font-size:16px;color:var(--ink-dim);margin-left:4px;}
+  .current-weight .delta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    margin-top:4px;
+  }
+  .delta.up{color:var(--alert);}
+  .delta.down{color:var(--good);}
+  .delta.flat{color:var(--ink-dim);}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  table th{
+    text-align:left;
+    color:var(--ink-dim);
+    font-weight:500;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    padding:6px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  table td{
+    padding:8px 4px;
+    border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  table tr:last-child td{border-bottom:none;}
+  .del-btn{
+    background:none;border:none;color:var(--ink-dim);
+    cursor:pointer;font-size:15px;padding:2px 6px;
+  }
+  .del-btn:active{color:var(--alert);}
+
+  .empty{
+    color:var(--ink-dim);
+    font-size:13px;
+    text-align:center;
+    padding:14px 0;
+  }
+
+  select{
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    color:var(--ink);
+    border-radius:8px;
+    padding:8px 10px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13.5px;
+    width:100%;
+  }
+
+  canvas{max-width:100%;}
+
+  .footer-actions{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:-6px;
+    margin-bottom:16px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>REGISTRO CORPORAL</h1>
+  <p>Peso diário e medidas periódicas</p>
+</header>
+<div class="ruler"></div>
+
+<nav class="tabs">
+  <button id="tab-peso-btn" class="active">Peso</button>
+  <button id="tab-medidas-btn">Medidas</button>
+</nav>
+
+<main>
+
+  <!-- ===================== PESO ===================== -->
+  <section id="view-peso" class="view active">
+
+    <div class="card">
+      <div class="current-weight" id="current-weight-box">
+        <div class="empty">Nenhum registro ainda</div>
+      </div>
+
+      <div class="row">
+        <div class="field big-input">
+          <label>Data</label>
+          <input type="date" id="weight-date">
+        </div>
+        <div class="field big-input">
+          <label>Peso (kg)</label>
+          <input type="number" step="0.1" inputmode="decimal" id="weight-value" placeholder="0,0">
+        </div>
+        <button class="primary" id="weight-save-btn">Registrar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tendência das médias semanais</h2>
+      <canvas id="weight-chart" height="180"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Médias semanais</h2>
+      <table id="weekly-table">
+        <thead><tr><th>Semana (início)</th><th>Média</th><th>Registros</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="weekly-empty" style="display:none;">Sem dados suficientes</div>
+    </div>
+
+    <div class="card">
+      <h2>Histórico</h2>
+      <table id="weight-table">
+        <thead><tr><th>Data</th><th>Peso</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="weight-empty" style="display:none;">Nenhum registro</div>
+    </div>
+
+    <div class="footer-actions">
+      <button class="ghost" id="clear-weight-btn">Limpar registros de peso</button>
+    </div>
+  </section>
+
+  <!-- ===================== MEDIDAS ===================== -->
+  <section id="view-medidas" class="view">
+
+    <div class="card">
+      <h2>Novo registro</h2>
+      <div class="row" style="margin-bottom:10px;">
+        <div class="field">
+          <label>Data</label>
+          <input type="date" id="meas-date">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Abdômen (cm)</label><input type="number" step="0.1" id="m-abdominal"></div>
+        <div class="field"><label>% Gordura</label><input type="number" step="0.1" id="m-gordura"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div class="field"><label>Tórax (cm)</label><input type="number" step="0.1" id="m-torax"></div>
+        <div class="field"><label>Peito (cm)</label><input type="number" step="0.1" id="m-peito"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div class="field"><label>Bíceps (cm)</label><input type="number" step="0.1" id="m-biceps"></div>
+        <div class="field"><label>Coxa (cm)</label><input type="number" step="0.1" id="m-coxa"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div class="field"><label>Quadril (cm)</label><input type="number" step="0.1" id="m-quadril"></div>
+      </div>
+      <div class="row" style="margin-top:14px;">
+        <button class="primary" id="meas-save-btn">Registrar medidas</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tendência por medida</h2>
+      <div style="margin-bottom:10px;">
+        <select id="meas-metric-select">
+          <option value="abdominal">Abdômen</option>
+          <option value="gordura">% Gordura</option>
+          <option value="torax">Tórax</option>
+          <option value="peito">Peito</option>
+          <option value="biceps">Bíceps</option>
+          <option value="coxa">Coxa</option>
+          <option value="quadril">Quadril</option>
+        </select>
+      </div>
+      <canvas id="meas-chart" height="180"></canvas>
+      <div class="empty" id="meas-chart-empty" style="display:none;">Sem dados para esta medida</div>
+    </div>
+
+    <div class="card">
+      <h2>Histórico</h2>
+      <div style="overflow-x:auto;">
+      <table id="meas-table">
+        <thead><tr>
+          <th>Data</th><th>Abd</th><th>Gord</th><th>Tór</th><th>Peito</th><th>Bíc</th><th>Coxa</th><th>Quad</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div class="empty" id="meas-empty" style="display:none;">Nenhum registro</div>
+    </div>
+
+    <div class="footer-actions">
+      <button class="ghost" id="clear-meas-btn">Limpar registros de medidas</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const WEIGHT_KEY = 'weight-entries';
+const MEAS_KEY = 'measurement-entries';
+
+let weightEntries = [];
+let measEntries = [];
+let weightChart = null;
+let measChart = null;
+
+function todayStr(){
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off*60000);
+  return local.toISOString().slice(0,10);
+}
+
+function fmtDateBR(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function fmtNum(n, decimals=1){
+  return n.toLocaleString('pt-BR',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
+}
+
+// ---------- Storage helpers (localStorage — dados ficam neste navegador/celular) ----------
+async function loadData(key){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){
+    console.error('Erro ao carregar', key, e);
+    return [];
+  }
+}
+async function saveData(key, data){
+  try{
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  }catch(e){
+    console.error('Erro ao salvar', key, e);
+    return false;
+  }
+}
+
+// ---------- ISO week ----------
+function getISOWeek(d){
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1)/7);
+  return {year: date.getUTCFullYear(), week: weekNo};
+}
+function getWeekStart(d){
+  const nd = new Date(d);
+  const day = (nd.getDay()+6)%7;
+  nd.setDate(nd.getDate()-day);
+  return nd;
+}
+
+function computeWeeklyAverages(entries){
+  const groups = {};
+  entries.forEach(e=>{
+    const d = new Date(e.date+'T00:00:00');
+    const {year, week} = getISOWeek(d);
+    const key = year+'-W'+String(week).padStart(2,'0');
+    if(!groups[key]) groups[key] = {sum:0, count:0, dates:[]};
+    groups[key].sum += e.value;
+    groups[key].count += 1;
+    groups[key].dates.push(d);
+  });
+  return Object.keys(groups).sort().map(key=>{
+    const g = groups[key];
+    const minDate = new Date(Math.min(...g.dates.map(x=>x.getTime())));
+    const weekStart = getWeekStart(minDate);
+    return {
+      key,
+      avg: g.sum/g.count,
+      count: g.count,
+      label: weekStart.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})
+    };
+  });
+}
+
+// ---------- Weight rendering ----------
+function renderCurrentWeight(){
+  const box = document.getElementById('current-weight-box');
+  if(weightEntries.length === 0){
+    box.innerHTML = '<div class="empty">Nenhum registro ainda</div>';
+    return;
+  }
+  const sorted = [...weightEntries].sort((a,b)=>a.date.localeCompare(b.date));
+  const last = sorted[sorted.length-1];
+  let deltaHtml = '';
+  if(sorted.length >= 2){
+    const prev = sorted[sorted.length-2];
+    const diff = last.value - prev.value;
+    const cls = diff > 0.05 ? 'up' : diff < -0.05 ? 'down' : 'flat';
+    const sign = diff > 0 ? '+' : '';
+    deltaHtml = `<div class="delta ${cls}">${sign}${fmtNum(diff)} kg desde ${fmtDateBR(prev.date)}</div>`;
+  }
+  box.innerHTML = `
+    <div><span class="value">${fmtNum(last.value)}</span><span class="unit">kg</span></div>
+    <div style="color:var(--ink-dim);font-size:12px;margin-top:2px;">${fmtDateBR(last.date)}</div>
+    ${deltaHtml}
+  `;
+}
+
+function renderWeightTable(){
+  const tbody = document.querySelector('#weight-table tbody');
+  const empty = document.getElementById('weight-empty');
+  tbody.innerHTML = '';
+  if(weightEntries.length === 0){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  const sorted = [...weightEntries].sort((a,b)=>b.date.localeCompare(a.date));
+  sorted.slice(0,30).forEach(e=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${fmtDateBR(e.date)}</td><td>${fmtNum(e.value)} kg</td>
+      <td><button class="del-btn" data-id="${e.id}">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      weightEntries = weightEntries.filter(e=>e.id !== btn.dataset.id);
+      await saveData(WEIGHT_KEY, weightEntries);
+      renderAllWeight();
+    });
+  });
+}
+
+function renderWeeklyTable(weekly){
+  const tbody = document.querySelector('#weekly-table tbody');
+  const empty = document.getElementById('weekly-empty');
+  tbody.innerHTML = '';
+  if(weekly.length === 0){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  [...weekly].reverse().forEach(w=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${w.label}</td><td>${fmtNum(w.avg)} kg</td><td>${w.count}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderWeightChart(weekly){
+  const ctx = document.getElementById('weight-chart');
+  if(weightChart) weightChart.destroy();
+  if(weekly.length === 0) return;
+  weightChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: weekly.map(w=>w.label),
+      datasets: [{
+        label: 'Média semanal (kg)',
+        data: weekly.map(w=>w.avg),
+        borderColor: '#B8935A',
+        backgroundColor: 'rgba(184,147,90,0.15)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#B8935A',
+        tension: 0.25,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#9BA1A8', font:{family:"'IBM Plex Mono'", size:10} }, grid:{color:'#343A40'} },
+        y: { ticks: { color: '#9BA1A8', font:{family:"'IBM Plex Mono'", size:10} }, grid:{color:'#343A40'} }
+      }
+    }
+  });
+}
+
+function renderAllWeight(){
+  renderCurrentWeight();
+  renderWeightTable();
+  const weekly = computeWeeklyAverages(weightEntries);
+  renderWeeklyTable(weekly);
+  renderWeightChart(weekly);
+}
+
+// ---------- Measurements rendering ----------
+const METRIC_LABELS = {
+  abdominal:'Abdômen', gordura:'% Gordura', torax:'Tórax',
+  peito:'Peito', biceps:'Bíceps', coxa:'Coxa', quadril:'Quadril'
+};
+
+function renderMeasTable(){
+  const tbody = document.querySelector('#meas-table tbody');
+  const empty = document.getElementById('meas-empty');
+  tbody.innerHTML = '';
+  if(measEntries.length === 0){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  const sorted = [...measEntries].sort((a,b)=>b.date.localeCompare(a.date));
+  sorted.forEach(e=>{
+    const v = (x)=> x===undefined || x===null || x==='' ? '—' : fmtNum(x, x>=10?1:1);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${fmtDateBR(e.date)}</td>
+      <td>${v(e.abdominal)}</td><td>${v(e.gordura)}</td><td>${v(e.torax)}</td>
+      <td>${v(e.peito)}</td><td>${v(e.biceps)}</td><td>${v(e.coxa)}</td><td>${v(e.quadril)}</td>
+      <td><button class="del-btn" data-id="${e.id}">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      measEntries = measEntries.filter(e=>e.id !== btn.dataset.id);
+      await saveData(MEAS_KEY, measEntries);
+      renderAllMeas();
+    });
+  });
+}
+
+function renderMeasChart(){
+  const metric = document.getElementById('meas-metric-select').value;
+  const ctx = document.getElementById('meas-chart');
+  const emptyEl = document.getElementById('meas-chart-empty');
+  const points = measEntries
+    .filter(e=> e[metric] !== undefined && e[metric] !== null && e[metric] !== '')
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  if(measChart) measChart.destroy();
+
+  if(points.length === 0){
+    emptyEl.style.display = 'block';
+    ctx.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  ctx.style.display = 'block';
+
+  measChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: points.map(p=>fmtDateBR(p.date)),
+      datasets: [{
+        label: METRIC_LABELS[metric],
+        data: points.map(p=>p[metric]),
+        borderColor: '#B8935A',
+        backgroundColor: 'rgba(184,147,90,0.15)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#B8935A',
+        tension: 0.25,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#9BA1A8', font:{family:"'IBM Plex Mono'", size:10} }, grid:{color:'#343A40'} },
+        y: { ticks: { color: '#9BA1A8', font:{family:"'IBM Plex Mono'", size:10} }, grid:{color:'#343A40'} }
+      }
+    }
+  });
+}
+
+function renderAllMeas(){
+  renderMeasTable();
+  renderMeasChart();
+}
+
+// ---------- Tabs ----------
+document.getElementById('tab-peso-btn').addEventListener('click', ()=>{
+  document.getElementById('tab-peso-btn').classList.add('active');
+  document.getElementById('tab-medidas-btn').classList.remove('active');
+  document.getElementById('view-peso').classList.add('active');
+  document.getElementById('view-medidas').classList.remove('active');
+});
+document.getElementById('tab-medidas-btn').addEventListener('click', ()=>{
+  document.getElementById('tab-medidas-btn').classList.add('active');
+  document.getElementById('tab-peso-btn').classList.remove('active');
+  document.getElementById('view-medidas').classList.add('active');
+  document.getElementById('view-peso').classList.remove('active');
+});
+
+// ---------- Actions: peso ----------
+document.getElementById('weight-save-btn').addEventListener('click', async ()=>{
+  const dateEl = document.getElementById('weight-date');
+  const valEl = document.getElementById('weight-value');
+  const date = dateEl.value || todayStr();
+  const value = parseFloat(valEl.value.replace(',','.'));
+  if(!value || value <= 0){
+    valEl.focus();
+    return;
+  }
+  weightEntries = weightEntries.filter(e=>e.date !== date);
+  weightEntries.push({ id: 'w_'+Date.now(), date, value });
+  const ok = await saveData(WEIGHT_KEY, weightEntries);
+  if(!ok){ alert('Não foi possível salvar. Tente novamente.'); }
+  valEl.value = '';
+  renderAllWeight();
+});
+
+document.getElementById('clear-weight-btn').addEventListener('click', async ()=>{
+  if(!confirm('Apagar todos os registros de peso? Esta ação não pode ser desfeita.')) return;
+  weightEntries = [];
+  await saveData(WEIGHT_KEY, weightEntries);
+  renderAllWeight();
+});
+
+// ---------- Actions: medidas ----------
+document.getElementById('meas-save-btn').addEventListener('click', async ()=>{
+  const date = document.getElementById('meas-date').value || todayStr();
+  const fields = ['abdominal','gordura','torax','peito','biceps','coxa','quadril'];
+  const entry = { id: 'm_'+Date.now(), date };
+  let hasAny = false;
+  fields.forEach(f=>{
+    const raw = document.getElementById('m-'+f).value;
+    if(raw !== ''){
+      entry[f] = parseFloat(raw.replace(',','.'));
+      hasAny = true;
+    }
+  });
+  if(!hasAny){
+    alert('Preencha ao menos uma medida.');
+    return;
+  }
+  measEntries = measEntries.filter(e=>e.date !== date);
+  measEntries.push(entry);
+  const ok = await saveData(MEAS_KEY, measEntries);
+  if(!ok){ alert('Não foi possível salvar. Tente novamente.'); }
+  fields.forEach(f=>{ document.getElementById('m-'+f).value=''; });
+  renderAllMeas();
+});
+
+document.getElementById('meas-metric-select').addEventListener('change', renderMeasChart);
+
+document.getElementById('clear-meas-btn').addEventListener('click', async ()=>{
+  if(!confirm('Apagar todos os registros de medidas? Esta ação não pode ser desfeita.')) return;
+  measEntries = [];
+  await saveData(MEAS_KEY, measEntries);
+  renderAllMeas();
+});
+
+// ---------- Captura global de erros ----------
+window.addEventListener('unhandledrejection', (event)=>{
+  console.error('Erro não tratado:', event.reason);
+  event.preventDefault();
+});
+window.addEventListener('error', (event)=>{
+  console.error('Erro não tratado:', event.error || event.message);
+  event.preventDefault();
+});
+
+// ---------- Init ----------
+(async function init(){
+  document.getElementById('weight-date').value = todayStr();
+  document.getElementById('meas-date').value = todayStr();
+  weightEntries = await loadData(WEIGHT_KEY);
+  measEntries = await loadData(MEAS_KEY);
+  renderAllWeight();
+  renderAllMeas();
+})();
+</script>
+</body>
+</html>
